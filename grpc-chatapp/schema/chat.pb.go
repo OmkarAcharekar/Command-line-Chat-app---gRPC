@@ -225,4 +225,117 @@ var file_grpc_chatapp_schema_chat_proto_depIdxs = []int32{
 }
 
 func init() { file_grpc_chatapp_schema_chat_proto_init() }
+func file_grpc_chatapp_schema_chat_proto_init() {
+	if File_grpc_chatapp_schema_chat_proto != nil {
+		return
+	}
+	if !protoimpl.UnsafeEnabled {
+		file_grpc_chatapp_schema_chat_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Message); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_grpc_chatapp_schema_chat_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*EmptyRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_grpc_chatapp_schema_chat_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*EmptyResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+	}
+	type x struct{}
+	out := protoimpl.TypeBuilder{
+		File: protoimpl.DescBuilder{
+			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
+			RawDescriptor: file_grpc_chatapp_schema_chat_proto_rawDesc,
+			NumEnums:      0,
+			NumMessages:   3,
+			NumExtensions: 0,
+			NumServices:   1,
+		},
+		GoTypes:           file_grpc_chatapp_schema_chat_proto_goTypes,
+		DependencyIndexes: file_grpc_chatapp_schema_chat_proto_depIdxs,
+		MessageInfos:      file_grpc_chatapp_schema_chat_proto_msgTypes,
+	}.Build()
+	File_grpc_chatapp_schema_chat_proto = out.File
+	file_grpc_chatapp_schema_chat_proto_rawDesc = nil
+	file_grpc_chatapp_schema_chat_proto_goTypes = nil
+	file_grpc_chatapp_schema_chat_proto_depIdxs = nil
+}
 
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConnInterface
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion6
+
+// ChatClient is the client API for Chat service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type ChatClient interface {
+	SendMessage(ctx context.Context, in *Message, opts ...grpc.CallOption) (*EmptyResponse, error)
+	SubscribeMessage(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (Chat_SubscribeMessageClient, error)
+}
+
+type chatClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewChatClient(cc grpc.ClientConnInterface) ChatClient {
+	return &chatClient{cc}
+}
+
+func (c *chatClient) SendMessage(ctx context.Context, in *Message, opts ...grpc.CallOption) (*EmptyResponse, error) {
+	out := new(EmptyResponse)
+	err := c.cc.Invoke(ctx, "/chat.Chat/SendMessage", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *chatClient) SubscribeMessage(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (Chat_SubscribeMessageClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Chat_serviceDesc.Streams[0], "/chat.Chat/SubscribeMessage", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &chatSubscribeMessageClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Chat_SubscribeMessageClient interface {
+	Recv() (*Message, error)
+	grpc.ClientStream
+}
