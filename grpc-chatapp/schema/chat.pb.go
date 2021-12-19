@@ -339,3 +339,94 @@ type Chat_SubscribeMessageClient interface {
 	Recv() (*Message, error)
 	grpc.ClientStream
 }
+
+type chatSubscribeMessageClient struct {
+	grpc.ClientStream
+}
+
+func (x *chatSubscribeMessageClient) Recv() (*Message, error) {
+	m := new(Message)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// ChatServer is the server API for Chat service.
+type ChatServer interface {
+	SendMessage(context.Context, *Message) (*EmptyResponse, error)
+	SubscribeMessage(*EmptyRequest, Chat_SubscribeMessageServer) error
+}
+
+// UnimplementedChatServer can be embedded to have forward compatible implementations.
+type UnimplementedChatServer struct {
+}
+
+func (*UnimplementedChatServer) SendMessage(context.Context, *Message) (*EmptyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendMessage not implemented")
+}
+func (*UnimplementedChatServer) SubscribeMessage(*EmptyRequest, Chat_SubscribeMessageServer) error {
+	return status.Errorf(codes.Unimplemented, "method SubscribeMessage not implemented")
+}
+
+func RegisterChatServer(s *grpc.Server, srv ChatServer) {
+	s.RegisterService(&_Chat_serviceDesc, srv)
+}
+
+func _Chat_SendMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Message)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServer).SendMessage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/chat.Chat/SendMessage",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServer).SendMessage(ctx, req.(*Message))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Chat_SubscribeMessage_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(EmptyRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(ChatServer).SubscribeMessage(m, &chatSubscribeMessageServer{stream})
+}
+
+type Chat_SubscribeMessageServer interface {
+	Send(*Message) error
+	grpc.ServerStream
+}
+
+type chatSubscribeMessageServer struct {
+	grpc.ServerStream
+}
+
+func (x *chatSubscribeMessageServer) Send(m *Message) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+var _Chat_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "chat.Chat",
+	HandlerType: (*ChatServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "SendMessage",
+			Handler:    _Chat_SendMessage_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "SubscribeMessage",
+			Handler:       _Chat_SubscribeMessage_Handler,
+			ServerStreams: true,
+		},
+	},
+	Metadata: "grpc-chatapp/schema/chat.proto",
+}
