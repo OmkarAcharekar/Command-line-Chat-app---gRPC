@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	chat "github.com/yashrsharma44/grpc-chat-app/grpc-chatapp/schema"
+	chat "github.com/omkaracharekar/grpc-chat-app/grpc-chatapp/schema"
 	"google.golang.org/grpc"
 )
 
