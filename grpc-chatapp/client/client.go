@@ -14,6 +14,27 @@ import (
 	"google.golang.org/grpc"
 )
 
+
+
+func (c *client) send(client chat.Chat_StreamClient) {
+
+	reader := bufio.NewReader(os.Stdin)
+
+	for {
+
+		select {
+		case <-client.Context().Done():
+			fmt.Println("client send loop disconnected")
+		default:
+			txt, _ := reader.ReadString('\n')
+			message := strings.Trim(txt, "\n")
+			err := client.Send(&chat.StreamRequest{Message: message, Name: c.Name})
+			if err != nil {
+				log.Fatalf("failed to send message %v", err)
+			}
+		}
+	}
+
 func doBiDiStreaming(c chat.ChatClient) {
 
 	fmt.Println("Starting with a BiDi streaming...")
