@@ -10,11 +10,46 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang/protobuf/ptypes"
 	chat "github.com/omkaracharekar/grpc-chat-app/grpc-chatapp/schema"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
+const tokenHeader = "x-chat-token"
 
+type client struct {
+	chat.ChatClient
+	Name, Token string
+}
+
+func Client() *client {
+	return &client{}
+}
+
+func (c *client) login() (string, error) {
+	ctx := context.Background()
+
+	res, err := c.ChatClient.Login(ctx, &chat.LoginRequest{
+		Username: c.Name,
+	})
+	if err != nil {
+		return "", nil
+	}
+
+	return res.Token, nil
+}
+
+func (c *client) logout() error {
+
+	ctx := context.Background()
+	_, err := c.ChatClient.Logout(ctx, &chat.LogoutRequest{
+		Token: c.Token,
+	})
+
+	return err
+
+}
 
 func (c *client) send(client chat.Chat_StreamClient) {
 
@@ -35,74 +70,57 @@ func (c *client) send(client chat.Chat_StreamClient) {
 		}
 	}
 
-func doBiDiStreaming(c chat.ChatClient) {
+}
 
-	fmt.Println("Starting with a BiDi streaming...")
+func (c *client) receive(client chat.Chat_StreamClient) {
 
-	// we create a stream by invoking the server
-	stream, err := c.SubscribeMessage(context.Background(), new(chat.EmptyRequest))
+	for {
+		res, err := client.Recv()
+
+		if err == io.EOF {
+			fmt.Printf("Stream closed by server")
+			return
+		}
+
+		if err != nil {
+			log.Fatalf("Unknown Error at receive : %v", err)
+			return
+		}
+
+		ts := res.Timestamp
+		var tm time.Time
+		t, err := ptypes.Timestamp(ts)
+		if err != nil {
+			tm = time.Now()
+		}
+		tm = t.In(time.Local)
+
+		switch evnt := res.Event.(type) {
+		case *chat.StreamResponse_ClientMessage:
+			fmt.Printf("[%v|%v] %v\n", tm, evnt.ClientMessage.Name, evnt.ClientMessage.Message)
+		case *chat.StreamResponse_ServerShutdown:
+			fmt.Printf("%v --- the server is shutting down\n", tm)
+		default:
+			fmt.Println("Default case of receive")
+		}
+
+	}
+}
+
+func (c *client) stream() {
+
+	md := metadata.New(map[string]string{tokenHeader: c.Token})
+	ctx := context.Background()
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
+	client, err := c.ChatClient.Stream(ctx)
 	if err != nil {
-		log.Fatalf("Error while creating Subscribe Stream: %v", err)
-		return
+		log.Fatalf("Error on stream : %v", err)
 	}
 
-	reader := bufio.NewReader(os.Stdin)
-
-	fmt.Println("Enter your username :")
-	username, _ := reader.ReadString('\n')
-	username = strings.TrimSuffix(username, "\n")
-
-	fmt.Println("Start entering your messages :P...")
-	waitc := make(chan struct{})
-
-	// we send a bunch of messages to the server(go routine)
-	go func() {
-		// function to send a bunch of messages
-
-		for {
-
-			text, _ := reader.ReadString('\n')
-			text = strings.TrimSuffix(text, "\n")
-			currTime := time.Now().Unix()
-			request := &chat.Message{
-				Username:  username,
-				Timestamp: currTime,
-				Content:   text,
-			}
-			// fmt.Printf("[%v|%v] : %v\n", currTime, username, text)
-			_, err := c.SendMessage(context.Background(), request)
-			if err != nil {
-				log.Fatalf("Error while creating Send Message: %v", err)
-				close(waitc)
-			}
-
-		}
-
-	}()
-	// we receive a bunch of messages from the server(go routine)
-	go func() {
-		// receive a bunch of messages
-
-		for {
-			res, err := stream.Recv()
-
-			if err == io.EOF {
-				close(waitc)
-			}
-
-			if err != nil {
-				log.Fatalf("Error while receiving from server: %v", err)
-				close(waitc)
-			}
-			user := strings.TrimSuffix(res.GetUsername(), "\n")
-			tiStamp := res.GetTimestamp()
-			conTent := res.GetContent()
-			fmt.Printf("[%v|%v] : %v\n", tiStamp, user, conTent)
-		}
-
-	}()
-	// block until everything is done
-	<-waitc
+	defer client.CloseSend()
+	go c.send(client)
+	c.receive(client)
 }
 
 func main() {
@@ -115,9 +133,23 @@ func main() {
 
 	defer cc.Close()
 
-	c := chat.NewChatClient(cc)
-	fmt.Printf("Created client %f", c)
+	c := Client()
+	c.ChatClient = chat.NewChatClient(cc)
 
-	doBiDiStreaming(c)
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Println("Enter your username:")
+	username, _ := reader.ReadString('\n')
+
+	c.Name = strings.Trim(username, "\n")
+	c.Token, err = c.login()
+	if err != nil {
+		log.Fatalf("failed to login %v", err)
+	}
+
+	c.stream()
+	fmt.Println("Logging out..")
+	if err := c.logout(); err != nil {
+		log.Fatalf("Failed to logout.. %v", err)
+	}
 
 }
