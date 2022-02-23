@@ -40,6 +40,15 @@ type Message struct {
 	Content   string `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
 }
 
+
+type LoginRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Username string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+}
+
 func (x *Message) Reset() {
 	*x = Message{}
 	if protoimpl.UnsafeEnabled {
