@@ -17,3 +17,16 @@ type Queue struct {
 	containerLock sync.RWMutex
 }
 
+
+func (s *server) generateToken() (string, error) {
+
+	level.Debug(s.logger).Log("message", "started generating token")
+	txt := make([]byte, tokenSize)
+	_, err := rand.Read(txt)
+	if err != nil {
+		level.Error(s.logger).Log("error", "error while generating the token")
+		return "", err
+	}
+	level.Debug(s.logger).Log("message", "finished generating token")
+	return fmt.Sprintf("%x", txt), nil
+}
