@@ -30,3 +30,23 @@ func (s *server) generateToken() (string, error) {
 	level.Debug(s.logger).Log("message", "finished generating token")
 	return fmt.Sprintf("%x", txt), nil
 }
+
+
+
+func (s *server) addClientName(username string, tkn string) {
+
+	s.nameMutex.RLock()
+	defer s.nameMutex.RUnlock()
+	level.Debug(s.logger).Log("message", "adding the client name", "client", username, "token", tkn)
+	s.ClientName[tkn] = username
+
+}
+
+func (s *server) getClientName(tkn string) (string, bool) {
+
+	s.nameMutex.RLock()
+	defer s.nameMutex.RUnlock()
+	level.Debug(s.logger).Log("message", "getting the client name", "token", tkn)
+	name, ok := s.ClientName[tkn]
+	return name, ok
+}
