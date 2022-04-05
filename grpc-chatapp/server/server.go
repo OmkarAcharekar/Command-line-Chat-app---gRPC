@@ -50,3 +50,27 @@ func (s *server) getClientName(tkn string) (string, bool) {
 	name, ok := s.ClientName[tkn]
 	return name, ok
 }
+
+
+
+func (s *server) Login(ctx context.Context, req *chat.LoginRequest) (*chat.LoginResponse, error) {
+
+	// TODO: handle same name people in the chat
+	// Generate a token
+	level.Info(s.logger).Log("message", "new client login request", "req", req)
+	tkn, err := s.generateToken()
+	if err != nil {
+		level.Error(s.logger).Log("error", "login failed for the request", req)
+	}
+	// Add the token in the client name
+	s.addClientName(req.Username, tkn)
+	// Send in a notif that broadcast is successful
+	level.Info(s.logger).Log("message", "login is successful", "req", req)
+	s.CommonChannel <- chat.StreamResponse{
+		Timestamp: ptypes.TimestampNow(),
+		Event: &chat.StreamResponse_ClientLogin{
+			&chat.StreamResponse_Login{
+				Name: req.Username,
+			},
+		},
+	}
