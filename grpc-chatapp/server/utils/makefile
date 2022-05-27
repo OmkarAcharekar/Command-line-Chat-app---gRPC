@@ -13,7 +13,7 @@ GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
 
-# Redirect error output to a file, so we can show it in development mode.
+# Direct the error output to a file, so we can show it in development mode.
 STDERR=/tmp/.$(PROJECTNAME)-stderr.txt
 
 go-get:
@@ -49,7 +49,7 @@ run: build
 	@echo "  >  Running binary..."
 	$(GOBIN)/$(PROJECTNAME)
 
-## exec: Run given command, wrapped with custom GOPATH. e.g; make exec run="go test ./..."
+## exec: Run given command, wrapped with custom GOPATH. 
 exec:
 	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) $(run)
 
